@@ -1,1 +1,1 @@
-export { Buffer, BufReader, writeAll } from "jsr:@std/io";
+export { writeAll, Buffer } from "jsr:@std/io";
