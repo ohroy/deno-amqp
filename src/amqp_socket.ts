@@ -2,7 +2,7 @@ import { encodeHeader, encodeMethod } from "./amqp_codec.ts";
 import { AmqpFrameReader } from "./amqp_frame_reader.ts";
 import type { IncomingFrame, OutgoingFrame } from "./amqp_frame.ts";
 import { writeAll } from "../deps.ts";
-import type { Reader,Writer, Closer } from "jsr:@std/io/types";
+import type { Closer, Reader, Writer } from "jsr:@std/io/types";
 export interface AmqpSocketWriter {
   write(frames: Array<OutgoingFrame>): Promise<void>;
 }
@@ -69,9 +69,7 @@ interface AmqpSocketOptions {
   frameMax?: number;
 }
 
-export class AmqpSocket
-  implements AmqpSocketWriter, AmqpSocketReader, AmqpSocketCloser
-{
+export class AmqpSocket implements AmqpSocketWriter, AmqpSocketReader, AmqpSocketCloser {
   #conn: Reader & Writer & Closer;
   #reader: AmqpFrameReader;
   #sendTimer: number | null = null;
@@ -101,16 +99,9 @@ export class AmqpSocket
   };
 
   tune(options: AmqpSocketOptions) {
-    this.#readTimeout =
-      options.readTimeout !== undefined
-        ? options.readTimeout
-        : this.#readTimeout;
-    this.#sendTimeout =
-      options.sendTimeout !== undefined
-        ? options.sendTimeout
-        : this.#sendTimeout;
-    this.#frameMax =
-      options.frameMax !== undefined ? options.frameMax : this.#frameMax;
+    this.#readTimeout = options.readTimeout !== undefined ? options.readTimeout : this.#readTimeout;
+    this.#sendTimeout = options.sendTimeout !== undefined ? options.sendTimeout : this.#sendTimeout;
+    this.#frameMax = options.frameMax !== undefined ? options.frameMax : this.#frameMax;
     this.#resetSendTimer();
   }
 
@@ -124,23 +115,20 @@ export class AmqpSocket
     this.#resetSendTimer();
     for (const frame of frames) {
       if (frame.type === "content") {
-        const chunks =
-          this.#frameMax > 8 && frame.payload.length > this.#frameMax - 8
-            ? splitArray(frame.payload, this.#frameMax - 8).map((chunk) =>
-                encodeFrame({
-                  type: "content",
-                  channel: frame.channel,
-                  payload: chunk,
-                }),
-              )
-            : [encodeFrame(frame)];
+        const chunks = this.#frameMax > 8 && frame.payload.length > this.#frameMax - 8
+          ? splitArray(frame.payload, this.#frameMax - 8).map((chunk) =>
+            encodeFrame({
+              type: "content",
+              channel: frame.channel,
+              payload: chunk,
+            })
+          )
+          : [encodeFrame(frame)];
         for (const chunk of chunks) {
           this.#guard = this.#guard.then(() => writeAll(this.#conn, chunk));
         }
       } else {
-        this.#guard = this.#guard.then(() =>
-          writeAll(this.#conn, encodeFrame(frame)),
-        );
+        this.#guard = this.#guard.then(() => writeAll(this.#conn, encodeFrame(frame)));
       }
     }
 
