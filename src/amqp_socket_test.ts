@@ -3,7 +3,7 @@ import { arrayOf, assertEquals, assertRejects, test } from "./testing.ts";
 import { mock } from "./mock.ts";
 import { FrameError } from "./frame_error.ts";
 import { createResolvable } from "./resolvable.ts";
-import type { Reader,Writer, Closer } from "jsr:@std/io/types";
+import type { Closer, Reader, Writer } from "jsr:@std/io/types";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
